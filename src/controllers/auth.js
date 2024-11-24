@@ -77,7 +77,7 @@ exports.signup = async (req, res) => {
 
     // Generate token for the user
     const token = jwt.sign(
-      { user_id: result.insertId, username },
+      { user_id, username },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
