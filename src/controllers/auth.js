@@ -52,34 +52,36 @@ exports.signup = async (req, res) => {
       "SELECT * FROM users WHERE username = ? OR email = ?",
       [username, email]
     );
-
+    
     if (existingUser.length > 0) {
       return res
-        .status(400)
-        .json({ message: "Account already exists" });
+      .status(400)
+      .json({ message: "Account already exists" });
     }
-
+    
     // Generate a UUID for the user
     const user_id = uuidv4();
-
+    
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
+    
     // Insert new user
     const query =
-      "INSERT INTO users (user_id, username, email, password) VALUES (?, ?, ?, ?)";
-    const [result] = await db.execute(query, [
+    "INSERT INTO users (user_id, username, email, password) VALUES (?, ?, ?, ?)";
+    await db.execute(query, [
       user_id,
       username,
       email,
       hashedPassword,
     ]);
-
+    
+    const [users] = await db.query("SELECT * FROM users WHERE username = ?", [username]);
+    const user = users[0];
     // Generate token for the user
     const token = jwt.sign(
-      { user_id, username },
+      { user_id: user.user_id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "48h" }
     );
 
     // Send success response with the token
