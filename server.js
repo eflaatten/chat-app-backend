@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 
 const authRoutes = require('./src/routes/auth');
+const fetchRoutes = require('./src/routes/fetchData');
 
 console.log("Starting server initialization...");
 
@@ -16,6 +17,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/fetch", fetchRoutes);
 
 
 app.get("/api/test", (req, res) => {
