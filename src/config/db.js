@@ -1,0 +1,30 @@
+const mysql = require("mysql2");
+require("dotenv").config();
+console.log("Environment Variables:");
+console.log({
+  DB_HOST: process.env.DB_HOST,
+  DB_USER: process.env.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_NAME: process.env.DB_NAME,
+  PORT: process.env.PORT,
+});
+
+console.log("Creating database pool...");
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  connectTimeout: 10000,
+});
+
+const promisePool = pool.promise();
+
+// Test the connection
+promisePool
+  .query("SELECT 1")
+  .then(() => console.log("Database connection successful"))
+  .catch((err) => console.error("Database connection error:", err));
+
+module.exports = promisePool;
