@@ -13,7 +13,9 @@ const app = express();
 console.log("Express app created");
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*'
+}));
 app.use(express.json());
 
 // Routes
