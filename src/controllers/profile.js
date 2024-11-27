@@ -1,68 +1,72 @@
-const { uploadFileToS3 } = require('../aws/s3');
-const db = require('../config/db');
+const db = require("../config/db");
+const { uploadToBlobStorage } = require("../vercel/uploadToBlobStore");
 
-const changeProfilePicture = async (req, res) => {
+exports.changeProfilePicture = async (req, res) => {
+  const { user_id } = req.user;
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
   try {
-    const { user_id } = req.user;
-    const fileStream = req;
-    const fileType = req.headers["content-type"];
-
-    if (!fileType) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Content-Type header is missing." });
-    }
-
-    const bucketName = process.env.S3_BUCKET_NAME;
-    const extension = fileType.split("/")[1];
-    const key = `profile_pictures/${user_id}-${Date.now()}.${extension}`;
-
-    console.log(
-      "Uploading to S3 with Key:",
-      key,
-      "and Content-Type:",
-      fileType
+    const blobUrl = await uploadToBlobStorage(
+      file.buffer,
+      `profile-${user_id}.jpg`
+    );
+    const [result] = await db.query(
+      "UPDATE users SET profile_picture = ? WHERE user_id = ?",
+      [blobUrl, user_id]
     );
 
-    const result = await uploadFileToS3(bucketName, key, fileStream, fileType);
-
-    if (result.success) {
-      try {
-        const query = "UPDATE users SET profile_picture = ? WHERE user_id = ?";
-        const values = [result.location, user_id];
-        await db.query(query, values);
-
-        return res.status(200).json({
-          success: true,
-          message: "Profile picture updated successfully.",
-          location: result.location,
-        });
-      } catch (dbError) {
-        console.error(
-          "Error saving profile picture URL to DB:",
-          dbError.message,
-          dbError.stack
-        );
-        return res.status(500).json({
-          success: false,
-          message: "Failed to save profile picture URL to the database.",
-        });
-      }
-    } else {
-      return res.status(500).json({
-        success: false,
-        message: result.message,
-      });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    res.json({ message: "Profile picture updated successfully", url: blobUrl });
   } catch (error) {
-    console.error("Error in changeProfilePicture:", error.message, error.stack);
-    res.status(500).json({
-      success: false,
-      message: "An error occurred while updating the profile picture.",
-    });
+    console.error("Change profile picture error:", error);
+    res.status(500).json({ message: "Error updating profile picture" });
   }
 };
 
+exports.removeProfilePicture = async (req, res) => {
+  const { user_id } = req.user;
 
+  try {
+    const [users] = await db.query(
+      "SELECT profile_picture FROM users WHERE user_id = ?",
+      [user_id]
+    );
 
-module.exports = { changeProfilePicture };
+    if (users.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = users[0];
+
+    if (!user.profile_picture) {
+      return res.status(400).json({ message: "No profile picture to remove" });
+    }
+
+    const fileName = user.profile_picture.split("/").pop();
+
+    try {
+      await axios.delete(user.profile_picture);
+    } catch (deleteError) {
+      console.error("Error deleting file from blob storage:", deleteError);
+      return res
+        .status(500)
+        .json({ message: "Error deleting profile picture from storage" });
+    }
+
+    await db.query("UPDATE users SET profile_picture = NULL WHERE user_id = ?", [
+      user_id,
+    ]);
+
+    res.json({ message: "Profile picture removed successfully", fileName });
+  } catch (error) {
+    console.error("Remove profile picture error:", error);
+    res.status(500).json({ message: "Error removing profile picture" });
+  }
+};
