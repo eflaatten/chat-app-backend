@@ -9,7 +9,7 @@ const s3Client = new S3Client({
   },
 });
 
-const uploadFileToS3 = async (bucket, key, fileStream) => {
+const uploadFileToS3 = async (bucket, key, fileStream, fileType) => {
   try {
     console.log("Uploading to S3 Bucket:", bucket, "Key:", key);
 
@@ -23,6 +23,7 @@ const uploadFileToS3 = async (bucket, key, fileStream) => {
         Bucket: bucket,
         Key: key,
         Body: fileStream,
+        ContentType: fileType, // Set Content-Type metadata
       },
     });
 

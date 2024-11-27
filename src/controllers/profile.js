@@ -2,27 +2,28 @@ const { uploadFileToS3 } = require('../aws/s3');
 
 const changeProfilePicture = async (req, res) => {
   try {
-    const { user_id } = req.user; 
-    const contentType = req.headers["content-type"]; 
+    const { user_id } = req.user;
+    const fileStream = req; 
+    const fileType = req.headers["content-type"]; 
 
-    if (!contentType) {
+    if (!fileType) {
       return res
         .status(400)
         .json({ success: false, message: "Content-Type header is missing." });
     }
 
     const bucketName = process.env.S3_BUCKET_NAME;
-    console.log("Bucket Name from ENV:", bucketName);
-    const key = `profile_pictures/${user_id}-${Date.now()}`;
+    const extension = fileType.split("/")[1];
+    const key = `profile_pictures/${user_id}-${Date.now()}.${extension}`;
 
     console.log(
       "Uploading to S3 with Key:",
       key,
       "and Content-Type:",
-      contentType
+      fileType
     );
 
-    const result = await uploadFileToS3(bucketName, key, req);
+    const result = await uploadFileToS3(bucketName, key, fileStream, fileType);
 
     if (result.success) {
       return res.status(200).json({
@@ -45,6 +46,7 @@ const changeProfilePicture = async (req, res) => {
     });
   }
 };
+
 
 module.exports = {
   changeProfilePicture,
