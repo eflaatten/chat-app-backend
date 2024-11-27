@@ -1,24 +1,22 @@
-// s3.js
-import { S3Client } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
+const { S3Client } = require("@aws-sdk/client-s3");
+const { Upload } = require("@aws-sdk/lib-storage");
 
 const s3Client = new S3Client({
-  region: process.env.AWS_BUCKET_REGION,
+  region: process.env.S3_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
-/**
- * Upload a file stream to S3
- * @param {string} bucket - The S3 bucket name.
- * @param {string} key - The key (path) for the file in the bucket.
- * @param {stream.Readable} fileStream - The file stream to upload.
- * @returns {Promise<object>} - Upload result containing location and metadata.
- */
-export const uploadFileToS3 = async (bucket, key, fileStream) => {
+const uploadFileToS3 = async (bucket, key, fileStream) => {
   try {
+    console.log("Uploading to S3 Bucket:", bucket, "Key:", key);
+
+    if (!bucket) {
+      throw new Error("Bucket name is undefined.");
+    }
+
     const upload = new Upload({
       client: s3Client,
       params: {
@@ -32,10 +30,10 @@ export const uploadFileToS3 = async (bucket, key, fileStream) => {
     return {
       success: true,
       message: "File uploaded successfully",
-      location: result.Location,
+      location: `https://${bucket}.s3.${process.env.S3_REGION}.amazonaws.com/${key}`,
     };
   } catch (error) {
-    console.error("Error uploading file to S3:", error);
+    console.error("Error uploading file to S3:", error.message);
     return {
       success: false,
       message: "File upload failed",
@@ -43,3 +41,5 @@ export const uploadFileToS3 = async (bucket, key, fileStream) => {
     };
   }
 };
+
+module.exports = { uploadFileToS3 };

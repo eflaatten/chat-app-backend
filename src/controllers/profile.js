@@ -1,19 +1,28 @@
-//const db = require("../config/db");
-const { uploadFileToS3 } = require("../aws/s3");
+const { uploadFileToS3 } = require('../aws/s3');
 
 const changeProfilePicture = async (req, res) => {
   try {
-    const { user_id } = req.user;
-    const fileStream = req;
+    const { user_id } = req.user; 
+    const contentType = req.headers["content-type"]; 
 
-    if (!req.headers["content-type"]) {
-      return res.status(400).json({ success: false, message: "Content-Type header is missing." });
+    if (!contentType) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Content-Type header is missing." });
     }
 
-    const bucketName = process.env.AWS_BUCKET_NAME;
+    const bucketName = process.env.S3_BUCKET_NAME;
+    console.log("Bucket Name from ENV:", bucketName);
     const key = `profile_pictures/${user_id}-${Date.now()}`;
 
-    const result = await uploadFileToS3(bucketName, key, fileStream);
+    console.log(
+      "Uploading to S3 with Key:",
+      key,
+      "and Content-Type:",
+      contentType
+    );
+
+    const result = await uploadFileToS3(bucketName, key, req);
 
     if (result.success) {
       return res.status(200).json({
@@ -28,7 +37,7 @@ const changeProfilePicture = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error changing profile picture:", error);
+    console.error("Error in changeProfilePicture:", error.message, error.stack);
     res.status(500).json({
       success: false,
       message: "Failed to change profile picture.",
@@ -37,4 +46,6 @@ const changeProfilePicture = async (req, res) => {
   }
 };
 
-module.exports = { changeProfilePicture };
+module.exports = {
+  changeProfilePicture,
+};
