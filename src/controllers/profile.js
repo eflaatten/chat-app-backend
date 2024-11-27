@@ -1,4 +1,4 @@
-const db = require("../config/db");
+//const db = require("../config/db");
 const { uploadFileToS3 } = require("../aws/s3");
 
 const changeProfilePicture = async (req, res) => {
@@ -37,6 +37,4 @@ const changeProfilePicture = async (req, res) => {
   }
 };
 
-module.exports = {
-  changeProfilePicture,
-};
+module.exports = { changeProfilePicture };
